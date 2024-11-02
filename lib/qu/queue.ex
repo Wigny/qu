@@ -67,22 +67,26 @@ defmodule Qu.Queue do
     Agent.get(__MODULE__, & &1)
   end
 
-  def member?(user) do
-    Agent.get(__MODULE__, &Q.member?(&1, user))
+  def member?(item) do
+    Agent.get(__MODULE__, &Q.member?(&1, item))
   end
 
-  def push(user) do
-    Agent.update(__MODULE__, &Q.push(&1, user))
+  def push(item) do
+    Agent.update(__MODULE__, &Q.push(&1, item))
     notify_change()
 
     :ok
   end
 
   def pop do
-    {:value, user} = Agent.get_and_update(__MODULE__, &Q.pop/1)
-    notify_change()
+    case Agent.get_and_update(__MODULE__, &Q.pop/1) do
+      {:value, item} ->
+        notify_change()
+        item
 
-    user
+      :empty ->
+        nil
+    end
   end
 
   defp notify_change do

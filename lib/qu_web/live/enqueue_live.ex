@@ -18,6 +18,14 @@ defmodule QuWeb.EnqueueLive do
     <span :if={@position}>
       You are the in the <%= @position + 1 %>º position
     </span>
+
+    <.button
+      id="notification-permission"
+      phx-hook="RequestNotificationPermission"
+      phx-click="request_notification_permission"
+    >
+      Request notification permission
+    </.button>
     """
   end
 
@@ -40,14 +48,29 @@ defmodule QuWeb.EnqueueLive do
     {:noreply, stream_insert(socket, :queue, user, limit: -10)}
   end
 
+  def handle_event("request_notification_permission", _params, socket) do
+    {:noreply, push_event(socket, "request-notification-permission", %{})}
+  end
+
   @impl true
   def handle_info({:change, queue}, socket) do
-    {:noreply, update_queue(socket, queue)}
+    {:noreply,
+     socket
+     |> update_queue(queue)
+     |> send_notification()}
   end
 
   defp update_queue(socket, queue) do
     socket
     |> stream(:queue, Enum.take(queue, 10), reset: true)
     |> assign(:position, Enum.find_index(queue, &(&1 == socket.assigns.current_user)))
+  end
+
+  defp send_notification(socket) do
+    case socket.assigns.position do
+      0 -> push_event(socket, "notification", %{title: "It is your turn now!"})
+      1 -> push_event(socket, "notification", %{title: "You are the next!", body: "Get ready!"})
+      _n -> socket
+    end
   end
 end

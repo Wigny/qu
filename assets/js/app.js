@@ -28,8 +28,28 @@ let csrfToken = document
 
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: { _csrf_token: csrfToken }
+  params: { _csrf_token: csrfToken },
+  hooks: {
+    RequestNotificationPermission: {
+      mounted() {
+        const hideButton = (permission = Notification.permission) => {
+          this.el.hidden = permission !== "default";
+        }
+
+        hideButton()
+
+        this.handleEvent("request-notification-permission", () => {
+          Notification.requestPermission().then(hideButton);
+        })
+      }
+    }
+  }
 });
+
+window.addEventListener("phx:notification", event => {
+  new Notification(event.detail.title, { body: event.detail.body });
+});
+
 
 // Show progress bar on live navigation and form submits
 topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" });
